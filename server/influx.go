@@ -138,17 +138,18 @@ func (m *Influx) Run(in <-chan QuerySnip) {
 		p, err := influxdb.NewPoint(
 			m.measurement,
 			map[string]string{
-				"device": snip.Device,
+				"device": getDevice(snip.Device),
 				"type":   snip.Measurement.String(),
 			},
-			map[string]interface{}{"value": snip.Value},
+			map[string]interface{}{"value": getValue(snip.Device, snip.Measurement.String(), snip.Value)},
 			snip.Timestamp,
 		)
 		if err != nil {
 			log.Printf("influx: error creating point: %v", err)
 			continue
 		}
-
+		//log.Printf("Influx new Point: Device %s, Type: %s, Value: %.3f", getDevice(snip.Device), snip.Measurement.String(), getValue(snip.Device, snip.Measurement.String(), snip.Value))
+		
 		m.Lock()
 		m.points = append(m.points, p)
 		m.Unlock()
@@ -159,4 +160,25 @@ func (m *Influx) Run(in <-chan QuerySnip) {
 	<-done
 
 	m.client.Close()
+}
+
+func getDevice(device string ) string {
+	switch device {
+		case "SDM2301.1":
+			return "SDM1.1"		
+		case "SDM2301.2":
+			return "SDM1.2"
+	}
+	return device	
+}
+
+func getValue(device string, valueType string, value float64 ) float64 {
+	switch device {
+		case "SDM2301.2":
+			switch valueType {
+				case "Import":
+					return value + 1000;
+			}
+	}
+	return value	
 }
